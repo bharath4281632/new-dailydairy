@@ -10,3 +10,10 @@ export function Unix_timestamp(t) {
   var s = "0" + dt.getSeconds();
   return hr + ":" + m.substr(-2) + ":" + s.substr(-2);
 }
+
+export function isMobileDevice() {
+  return (
+    typeof window.orientation !== "undefined" ||
+    navigator.userAgent.indexOf("IEMobile") !== -1
+  );
+}

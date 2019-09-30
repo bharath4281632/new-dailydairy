@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { BrowserRouter, Route, Switch, Redirect } from "react-router-dom";
 
 import MainPage from "./pages/mainpage/mainpage.component";
@@ -7,42 +7,55 @@ import NotFoundPage from "./pages/notfoundpage/notfoundpage.component";
 
 import ProtectedRoute from "./services/protectedRoute.service";
 import DesktopPage from "./pages/desktoppage/desktoppage.component";
+import { isMobileDevice } from "./services/pre-processor.service";
+import { currentUser } from "./firebase/auth.firebase";
+import { setCurrentUser, setAnonymous } from "./redux/user/user.actions";
+import { connect } from "react-redux";
+import { checkAnonymously } from "./services/userAuth.service";
 // import { connect } from "react-redux";
 // import { SET_CURRENT_USER } from "./utils/actions/const";
 
-const App = props => {
-  const [width, setWidth] = useState(0);
+class App extends React.Component {
+  state = {
+    isMobile: false
+  };
 
-  //updates the width of the window
-  useEffect(() => {
-    setWidth(window.innerWidth);
-    // props.setCurrentUser();
-    const updateWindowDimensions = e => {
-      setWidth(window.innerWidth);
-    };
-    window.addEventListener("resize", updateWindowDimensions);
-    return () => {
-      window.removeEventListener("resize", updateWindowDimensions);
-    };
-  }, [props]);
+  componentDidMount() {
+    // console.log(isMobileDevice());
+    this.setState({ isMobile: isMobileDevice() });
+    let userInfo = currentUser() || null;
+    // if (!userInfo) return;
+    this.props.setCurrentUser(userInfo);
+    this.props.setAnonymous(checkAnonymously(userInfo));
+  }
 
-  return (
-    <BrowserRouter>
-      <div style={{ height: "100%" }}>
-        {width <= 420 ? (
-          <Switch>
-            <Route path="/login" component={LoginPage} />
-            <ProtectedRoute path="/console" component={MainPage} />
-            <Redirect exact={true} from="/" to="/console/cart" />
-            <Route path="/not-found" component={NotFoundPage} />
-            <Redirect to="/not-found" />
-          </Switch>
-        ) : (
-          <DesktopPage></DesktopPage>
-        )}
-      </div>
-    </BrowserRouter>
-  );
+  render() {
+    return (
+      <BrowserRouter>
+        <div style={{ height: "100%" }}>
+          {this.state.isMobile ? (
+            <Switch>
+              <Route path="/login" component={LoginPage} />
+              <ProtectedRoute path="/console" component={MainPage} />
+              <Redirect exact={true} from="/" to="/console/cart" />
+              <Route path="/not-found" component={NotFoundPage} />
+              <Redirect to="/not-found" />
+            </Switch>
+          ) : (
+            <DesktopPage></DesktopPage>
+          )}
+        </div>
+      </BrowserRouter>
+    );
+  }
+}
+const mapDispatchToProps = dispatch => {
+  return {
+    setCurrentUser: userInfo => dispatch(setCurrentUser(userInfo)),
+    setAnonymous: status => dispatch(setAnonymous(status))
+  };
 };
-
-export default App;
+export default connect(
+  null,
+  mapDispatchToProps
+)(App);
